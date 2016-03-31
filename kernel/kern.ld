@@ -40,7 +40,8 @@ SECTIONS
 	
 	/* Adjust the address for the data segment to the next page */
 	. = ALIGN(0x1000);
-
+	
+	PROVIDE(kernel_data_load_addr = .);
 	/* The data segment */
 	.data : {
 		*(.data)
