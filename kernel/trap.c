@@ -1,7 +1,6 @@
 #include <kernel/trap.h>
 #include <inc/mmu.h>
 #include <inc/x86.h>
-
 /* For debugging, so print_trapframe can distinguish between printing
  * a saved trapframe and printing the current trapframe and print some
  * additional information in the latter case.
@@ -15,7 +14,10 @@ static struct Trapframe *last_tf;
  *       Interrupt descriptor table must be built at run time because shifted
  *       function addresses can't be represented in relocation records.
  */
-
+struct Gatedesc idt[256] = {{0}};
+struct Pseudodesc idt_pd = {
+	sizeof(idt) - 1, (uint32_t) idt
+};
 
 /* For debugging */
 static const char *trapname(int trapno)
@@ -117,7 +119,14 @@ trap_dispatch(struct Trapframe *tf)
    *       We prepared the keyboard handler and timer handler for you
    *       already. Please reference in kernel/kbd.c and kernel/timer.c
    */
-
+	if(tf->tf_trapno == IRQ_OFFSET + IRQ_KBD){
+		kbd_intr();
+		return;
+	}	
+	if(tf->tf_trapno == IRQ_OFFSET + IRQ_TIMER){
+		timer_handler();
+		return;
+	}
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
 }
@@ -163,5 +172,12 @@ void trap_init()
 	/* Keyboard interrupt setup */
 	/* Timer Trap setup */
   /* Load IDT */
+	
+	extern void kbd_entry();
+	extern void timer_entry();
 
+	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 1, GD_KT, kbd_entry, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, timer_entry, 0);
+	
+	lidt(&idt_pd);
 }
