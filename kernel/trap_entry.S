@@ -14,6 +14,13 @@
 	pushl $(num);							\
 	jmp _alltraps
 
+#define TRAPHANDLER_EC(name, num)					\
+	.globl name;							\
+	.type name, @function;						\
+	.align 2;							\
+	name:								\
+	pushl $(num);							\
+	jmp _alltraps
 
 .text
 
@@ -24,6 +31,7 @@
  */
 TRAPHANDLER_NOEC(kbd_entry, IRQ_OFFSET + IRQ_KBD);
 TRAPHANDLER_NOEC(timer_entry, IRQ_OFFSET + IRQ_TIMER);
+TRAPHANDLER_NOEC(pgflt_entry, T_PGFLT);
 
 .globl default_trap_handler;
 _alltraps:

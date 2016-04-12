@@ -119,6 +119,10 @@ trap_dispatch(struct Trapframe *tf)
    *       We prepared the keyboard handler and timer handler for you
    *       already. Please reference in kernel/kbd.c and kernel/timer.c
    */
+	if(tf->tf_trapno == T_PGFLT){
+		page_fault_handler(tf);
+		return;
+	}
 	if(tf->tf_trapno == IRQ_OFFSET + IRQ_KBD){
 		kbd_intr();
 		return;
@@ -175,9 +179,16 @@ void trap_init()
 	
 	extern void kbd_entry();
 	extern void timer_entry();
+	extern void pgflt_entry();
+	
 
+	SETGATE(idt[T_PGFLT], 1, GD_KT, pgflt_entry, 0);
 	SETGATE(idt[IRQ_OFFSET + IRQ_KBD], 1, GD_KT, kbd_entry, 0);
 	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, timer_entry, 0);
-	
 	lidt(&idt_pd);
+}
+
+void page_fault_handler(struct Trapframe *tf){
+	cprintf("[ID] %s @ 0x%08x\n",trapname(tf->tf_trapno),rcr2());
+	while(true);	
 }
