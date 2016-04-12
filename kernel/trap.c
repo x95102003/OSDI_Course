@@ -189,6 +189,6 @@ void trap_init()
 }
 
 void page_fault_handler(struct Trapframe *tf){
-	cprintf("[ID] %s @ 0x%08x\n",trapname(tf->tf_trapno),rcr2());
+	cprintf("[0456058] %s @ 0x%08x\n", trapname(tf->tf_trapno),rcr2());
 	while(true);	
 }
