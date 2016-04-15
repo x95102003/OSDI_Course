@@ -188,7 +188,7 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
     /* TODO */
-
+	boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), (PTE_W|PTE_P));
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
 	// Ie.  the VA range [KERNBASE, 2^32) should map to
@@ -198,11 +198,11 @@ mem_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
     /* TODO */
-
+	boot_map_region(kern_pgdir, KERNBASE, ROUNDUP(0XFFFFFFFF-KERNBASE, PGSIZE), 0, (PTE_W|PTE_P));
 	//////////////////////////////////////////////////////////////////////
 	// Map VA range [0, EXTPHYSMEM) to PA range [0, EXTPHYSMEM)
     boot_map_region(kern_pgdir, 0, ROUNDUP(EXTPHYSMEM, PGSIZE), 0, (PTE_W) | (PTE_P));
-
+	
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -396,6 +396,15 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
     /* TODO */
+	size_t i;
+	pte_t *pte;
+	for( i=0;i<size;i+=PGSIZE){
+		pte = pgdir_walk(pgdir, (void *)(va+i), 1);
+		if(!pte){
+			return;
+		}
+		*pte = (pa+i) | perm | PTE_P;
+	}
 }
 
 //
@@ -534,10 +543,11 @@ check_page_free_list(bool only_low_memory)
 	unsigned pdx_limit = only_low_memory ? 1 : NPDENTRIES;
 	int nfree_basemem = 0, nfree_extmem = 0;
 	char *first_free_page;
-
+	
 	if (!page_free_list){
 		panic("'page_free_list' is a null pointer!");
 	}
+
 	if (only_low_memory) {
 		// Move pages with lower addresses first in the free
 		// list, since entry_pgdir does not map all pages.
