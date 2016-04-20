@@ -95,8 +95,6 @@ boot_alloc(uint32_t n)
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
 	// to a multiple of PGSIZE.
-	//
-	// LAB 2: Your code here.
     if (n == 0)
         return nextfree;
     else if (n > 0)
@@ -174,7 +172,7 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
-    boot_map_region(kern_pgdir, UPAGES, ROUNDUP((sizeof(struct PageInfo) * npages), PGSIZE), PADDR(pages), (PTE_U | PTE_P));
+    	boot_map_region(kern_pgdir, UPAGES, ROUNDUP((sizeof(struct PageInfo) * npages), PGSIZE), PADDR(pages), (PTE_U | PTE_P));
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -188,7 +186,6 @@ mem_init(void)
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
     /* TODO */
-//	boot_map_region(kern_pgdir, KSTACKTOP-PTSIZE, PTSIZE-KSTKSIZE, PADDR(bootstack), PTE_W);
 	boot_map_region(kern_pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), (PTE_W));
 
 	//////////////////////////////////////////////////////////////////////
@@ -202,9 +199,9 @@ mem_init(void)
     /* TODO */
 	boot_map_region(kern_pgdir, KERNBASE, ROUNDUP(0XFFFFFFFF-KERNBASE, PGSIZE), 0, (PTE_W|PTE_P));
 	//////////////////////////////////////////////////////////////////////
-	// Map VA range [0, EXTPHYSMEM) to PA range [0, EXTPHYSMEM)
-    boot_map_region(kern_pgdir, 0, ROUNDUP(EXTPHYSMEM, PGSIZE), 0, (PTE_W) | (PTE_P));
-	
+	// Map VA range [IOPHYSMEM, EXTPHYSMEM) to PA range [IOPHYSMEM, EXTPHYSMEM)
+	boot_map_region(kern_pgdir, IOPHYSMEM, ROUNDUP((EXTPHYSMEM - IOPHYSMEM), PGSIZE), IOPHYSMEM, (PTE_W) | (PTE_P));
+
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
 
@@ -439,21 +436,25 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
     /* TODO */
 	pte_t *pte;
-	struct PageInfo *pg = page_lookup(pgdir, va, NULL);
-	if(pg == pp){	
-		pte = pgdir_walk(pgdir, va, 1);
-		tlb_invalidate(pgdir, va);
-		pp->pp_ref--;
-	}
-	else if(pg){
-		page_remove(pgdir, va);
-	}
 	pte = pgdir_walk(pgdir, va, 1);
 	if(!pte){
 		return -E_NO_MEM;
 	}
-	*pte = page2pa(pp)|perm|PTE_P;
 	pp->pp_ref++;
+	if(*pte){
+		page_remove(pgdir, va);
+	}
+	*pte = page2pa(pp)|perm|PTE_P;
+	/*if(pg == pp){	
+		pte = pgdir_walk(pgdir, va, 1);
+		tlb_invalidate(pgdir, va);
+		pp->pp_ref--;
+	}*/
+
+//	if(pg){
+
+//	}
+
 	return 0;
 }
 
@@ -690,7 +691,7 @@ check_kern_pgdir(void)
 	pgdir = kern_pgdir;
 
     // check IO mem
-    for (i = 0; i < ROUNDUP(IOPHYSMEM, PGSIZE); i += PGSIZE)
+    for (i = IOPHYSMEM; i < ROUNDUP(EXTPHYSMEM, PGSIZE); i += PGSIZE)
 		assert(check_va2pa(pgdir, i) == i);
 
 	// check pages array
@@ -710,7 +711,7 @@ check_kern_pgdir(void)
 	// check PDE permissions
 	for (i = 0; i < NPDENTRIES; i++) {
 		switch (i) {
-        case 0: // For I/O
+        case PDX(IOPHYSMEM):
 		case PDX(UVPT):
 		case PDX(KSTACKTOP-1):
 		case PDX(UPAGES):

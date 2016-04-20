@@ -10,7 +10,14 @@ _start = RELOC(entry)
 .text
 entry:
 	movw	$0x1234,0x472			# warm boot
-
+	
+	movl	$bss_start, %eax
+	xorl	%eax, %eax
+	cld
+	movl	$end, %eax
+	subl	$bss_start, %eax
+	movl	%eax, %ecx
+	rep	stosb
 	# We haven't set up virtual memory yet, so we're running from
 	# the physical address the boot loader loaded the kernel at: 1MB
 	# (plus a few bytes).  However, the C code is linked to run at
@@ -36,6 +43,9 @@ entry:
 
 relocated:
 
+    # Setup new gdt
+    lgdt    kgdtdesc
+
 	# Setup kernel stack
 	movl $0, %ebp
 	movl $(bootstacktop), %esp
@@ -43,6 +53,16 @@ relocated:
 	call kernel_main
 die:
 	jmp die
+
+.p2align 2                                # force 4 byte alignment
+kgdt:
+    SEG_NULL    # NULL segment
+    SEG(STA_X|STA_R, 0x0, 0xffffffff)   # Kernel code segment
+    SEG(STA_W, 0x0, 0xffffffff)         # Kernel data segment
+
+kgdtdesc:
+    .word   0x17        # sizeof(gdt) - 1
+    .long   kgdt
 
 .bss
 	# There is kernel initial stack
