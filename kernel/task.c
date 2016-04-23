@@ -115,6 +115,7 @@ int task_create()
 	ts->tf.tf_es = GD_UD | 0x03;
 	ts->tf.tf_ss = GD_UD | 0x03;
 	ts->tf.tf_esp = USTACKTOP-PGSIZE;
+
 	return ts->task_id;
 	/* Setup task structure (task_id and parent_id) */
 }
