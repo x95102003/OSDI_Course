@@ -26,7 +26,6 @@ void timer_handler(struct Trapframe *tf)
   jiffies++;
 
   extern Task tasks[];
-
   extern Task *cur_task;
 
   if (cur_task != NULL)
@@ -35,6 +34,9 @@ void timer_handler(struct Trapframe *tf)
    * Check if it is needed to wakeup sleep task
    * If remind_ticks <= 0, yield the task
    */
+	if(cur_task->remind_ticks <= 0){
+		sched_yield();
+	}
   }
 }
 

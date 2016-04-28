@@ -194,6 +194,11 @@ void page_fault_handler(struct Trapframe *tf)
     while (1);
 }
 
+void syscall_handler(struct Trapframe *tf)
+{
+	printk("Syscall handler \n");
+}
+
 void trap_init()
 {
 	int i;
@@ -214,7 +219,6 @@ void trap_init()
 
   /* Using custom trap handler */
 	extern void PGFLT();
-  register_handler(T_PGFLT, page_fault_handler, PGFLT, 1, 0);
-
-	lidt(&idt_pd);
+	register_handler(T_PGFLT, page_fault_handler, PGFLT, 1, 0);
+	lidt(&idt_pd); 
 }

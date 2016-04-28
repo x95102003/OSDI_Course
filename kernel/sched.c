@@ -23,4 +23,14 @@ void sched_yield(void)
 {
 	extern Task tasks[];
 	extern Task *cur_task;
+	size_t i;
+	for(i=0;i<NR_TASKS;i++)
+	{
+		if(tasks[i].state == TASK_RUNNABLE)
+		{
+			tasks[i].state = TASK_RUNNING;
+			
+		}	
+	}
+	
 }

@@ -98,15 +98,28 @@ extern void sched_yield(void);
 int task_create()
 {
 	Task *ts = NULL;
-
 	/* Find a free task structure */
-
+	size_t i;
+	size_t pi;
+	size_t pid;
+	for(i=0; i<NR_TASKS; i++){
+		if(!tasks[i].state){
+			ts = &tasks[i];
+			pid = i;
+			break;
+		}	
+	}
+	if(!ts)
+		return -1;
   /* Setup Page Directory and pages for kernel*/
   if (!(ts->pgdir = setupkvm()))
     panic("Not enough memory for per process page directory!\n");
 
   /* Setup User Stack */
-
+	for(pi=USTACKTOP - USR_STACK_SIZE;pi < USTACKTOP; pi+=PGSIZE)
+	{ 
+		page_insert(ts->pgdir, page_alloc(ALLOC_ZERO),pi, PTE_U|PTE_P|PTE_W);
+	}
 	/* Setup Trapframe */
 	memset( &(ts->tf), 0, sizeof(ts->tf));
 
@@ -116,8 +129,13 @@ int task_create()
 	ts->tf.tf_ss = GD_UD | 0x03;
 	ts->tf.tf_esp = USTACKTOP-PGSIZE;
 
-	return ts->task_id;
+
 	/* Setup task structure (task_id and parent_id) */
+	if(cur_task)
+		ts->parent_id = cur_task->task_id;
+	ts->task_id = pid;
+	ts->remind_ticks = TIME_QUANT;
+	return ts->task_id;
 }
 
 
@@ -140,6 +158,11 @@ int task_create()
  */
 static void task_free(int pid)
 {
+	lcr3(PADDR(kern_pgdir));
+	Task *ts = &tasks[pid];
+	page_remove(ts->pgdir, USTACKTOP);
+	ptable_remove(ts->pgdir);
+	pgdir_remove(ts->pgdir);
 }
 
 void sys_kill(int pid)
@@ -151,6 +174,9 @@ void sys_kill(int pid)
    * Free the memory
    * and invoke the scheduler for yield
    */
+		tasks[pid].state = 0;
+		task_free(pid);
+		sched_yield();
 	}
 }
 

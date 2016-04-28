@@ -29,10 +29,11 @@ void kernel_main(void)
   printk("Readonly data start=0x%08x to = 0x%08x\n", etext, rdata_end);
   printk("Kernel data base start=0x%08x to = 0x%08x\n", data_start, end);
   timer_init();
+  printk("time_init correct \n");
   syscall_init();
-
+  printk("Syscall_init correct \n");
   task_init();
-
+  printk("Task_init correct \n");
   /* Enable interrupt */
   __asm __volatile("sti");
 

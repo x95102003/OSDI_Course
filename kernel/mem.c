@@ -569,6 +569,21 @@ setupvm(pde_t *pgdir, uint32_t start, uint32_t size)
 pde_t *
 setupkvm()
 {
+	size_t i;
+	struct PageInfo *p = page_alloc(ALLOC_ZERO);
+	pde_t *pgdir = page2kva(p);
+	boot_map_region(pgdir, UPAGES, ROUNDUP((sizeof(struct PageInfo) * npages), PGSIZE), PADDR(pages), PTE_U );
+	boot_map_region(pgdir, KSTACKTOP - KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_U);
+	boot_map_region(pgdir, KERNBASE, ROUNDUP(0XFFFFFFFF-KERNBASE, PGSIZE), 0, PTE_U);
+	boot_map_region(pgdir, IOPHYSMEM, ROUNDUP((EXTPHYSMEM - IOPHYSMEM), PGSIZE), IOPHYSMEM, PTE_U);
+	/*for (i =PDX(UENVS); i <NPDENTRIES; i++)
+	{
+		pgdir[i] = kern_pgdir[i];
+	}*/
+
+	pgdir[PDX(UVPT)] = PADDR(pgdir) | PTE_P | PTE_U;
+	return pgdir;
+
 }
 
 
@@ -576,6 +591,7 @@ setupkvm()
 int32_t
 sys_get_num_free_page(void)
 {
+	num_free_pages = calc_num_free_page(page_free_list);
   return num_free_pages;
 }
 
@@ -583,7 +599,18 @@ sys_get_num_free_page(void)
 int32_t
 sys_get_num_used_page(void)
 {
+	num_free_pages = calc_num_free_page(page_free_list);
   return npages - num_free_pages; 
+}
+
+int32_t
+calc_num_free_page(struct PageInfo *pp)
+{
+	if(!pp)
+		return 0;
+	else{
+		return 1 + calc_num_free_page(pp->pp_link);
+	}
 }
 
 // --------------------------------------------------------------
