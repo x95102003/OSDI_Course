@@ -71,5 +71,5 @@ void settextcolor(unsigned char forecolor, unsigned char backcolor){
 }
 
 void kill_self(){
-
+	syscall(SYS_kill, 0, 0, 0, 0, 0);
 }
