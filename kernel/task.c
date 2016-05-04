@@ -118,7 +118,6 @@ int task_create()
   /* Setup User Stack */
 	for(pi=USTACKTOP - USR_STACK_SIZE;pi < USTACKTOP; pi+=PGSIZE)
 	{
-
 		struct PageInfo *pg = page_alloc(ALLOC_ZERO);
 		page_insert(ts->pgdir, pg,(void*)pi, PTE_U|PTE_P|PTE_W);
 	}
@@ -166,8 +165,8 @@ static void task_free(int pid)
 	int i;
 	lcr3(PADDR(kern_pgdir));
 	Task *ts = &tasks[pid];
-	for(i=0; i<USR_STACK_SIZE;i+=PGSIZE){
-		page_remove(ts->pgdir,(void *)USTACKTOP-USR_STACK_SIZE+i);
+	for(i=USTACKTOP-USR_STACK_SIZE; i<USTACKTOP;i+=PGSIZE){
+		page_remove(ts->pgdir,(void *)i);
 	}
 	ptable_remove(ts->pgdir);
 	pgdir_remove(ts->pgdir);
@@ -232,7 +231,7 @@ int sys_fork()
 		}
 		memcpy(UTEMP, USTACKTOP-USR_STACK_SIZE, USR_STACK_SIZE);
 		for(i =0; i < USR_STACK_SIZE;i+=PGSIZE){
-			page_remove(cur_task->pgdir,(void *) USTACKTOP-USR_STACK_SIZE+i);
+			page_remove(cur_task->pgdir,(void *) UTEMP+i);
 		}
 		/*lcr3(PADDR(tasks[pid].pgdir));
 		for(i=0; i < USR_STACK_SIZE;i+=PGSIZE)
@@ -242,9 +241,8 @@ int sys_fork()
 
 			page_insert(tasks[pid].pgdir, pg1, (void *)UTEMP+i, PTE_U|PTE_P|PTE_W);
 		}
-		memcpy((void*)USTACKTOP-USR_STACK_SIZE, (void*)UTEMP, USR_STACK_SIZE);
-		lcr3(PADDR(cur_task->pgdir));
-		*/
+		memcpy(USTACKTOP-USR_STACK_SIZE, UTEMP, USR_STACK_SIZE);
+		lcr3(PADDR(cur_task->pgdir));*/
 		/* Step 4: All user program use the same code for now */
     setupvm(tasks[pid].pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)UDATA_start, UDATA_SZ);

@@ -24,18 +24,20 @@ void sched_yield(void)
 	extern Task tasks[];
 	extern Task *cur_task;
 	Task *last_task = cur_task;
-	size_t i;
-	for(i=0;i<NR_TASKS;i++)
+	uint32_t i=cur_task->task_id;
+	uint32_t p=10;
+	while(p--)
 	{
+		i++;
+		i = i%10;
 		if(tasks[i].state == TASK_RUNNABLE)
 		{
-			if(cur_task->state != TASK_SLEEP)
-				cur_task->state = TASK_RUNNABLE;
 			tasks[i].remind_ticks = TIME_QUANT;
 			tasks[i].state = TASK_RUNNING;
 			cur_task = &tasks[i];
 			break;
-		}	
+		}
+
 	}
 	if(last_task->remind_ticks <=0 && last_task->state == TASK_RUNNING)
 		last_task->state = TASK_RUNNABLE;
