@@ -26,7 +26,7 @@ void sched_yield(void)
 	Task *last_task = cur_task;
 	uint32_t i=cur_task->task_id;
 	uint32_t p=10;
-	while(p--)
+	while(1)
 	{
 		i++;
 		i = i%10;
