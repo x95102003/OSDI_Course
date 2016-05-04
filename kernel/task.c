@@ -222,27 +222,12 @@ int sys_fork()
 			return -1;
 		
 		tasks[pid].tf = cur_task->tf;
-		
-		/*for(i=0; i < USR_STACK_SIZE; i+=PGSIZE)
+		for(i =0 ; i < USR_STACK_SIZE ; i+=PGSIZE)
 		{
-			pte_t *pte = pgdir_walk(tasks[pid].pgdir, (void *)USTACKTOP-USR_STACK_SIZE+i, 0);
-			struct PageInfo *pg = pa2page(PTE_ADDR(*pte));
-			page_insert(cur_task->pgdir, pg, (void *) UTEMP+i, PTE_U|PTE_P|PTE_W);
+			pte_t *pte = pgdir_walk(tasks[pid].pgdir, (void *)(USTACKTOP-USR_STACK_SIZE+i), 0);
+			memcpy(KADDR(PTE_ADDR(*pte)), USTACKTOP-USR_STACK_SIZE+i, PGSIZE);
 		}
-		memcpy(UTEMP, USTACKTOP-USR_STACK_SIZE, USR_STACK_SIZE);
-		for(i =0; i < USR_STACK_SIZE;i+=PGSIZE){
-			page_remove(cur_task->pgdir,(void *) UTEMP+i);
-		}*/
-		lcr3(PADDR(tasks[pid].pgdir));
-		for(i=0; i < USR_STACK_SIZE;i+=PGSIZE)
-		{
-			pte_t *p1 = pgdir_walk(cur_task->pgdir,(void *) (USTACKTOP-USR_STACK_SIZE+i), 0);
-			struct PageInfo *pg1 = pa2page(PTE_ADDR(*p1));
 
-			page_insert(tasks[pid].pgdir, pg1, (void *)UTEMP+i, PTE_U|PTE_P|PTE_W);
-		}
-		memcpy(USTACKTOP-USR_STACK_SIZE, UTEMP, USR_STACK_SIZE);
-		lcr3(PADDR(cur_task->pgdir));
 		/* Step 4: All user program use the same code for now */
     setupvm(tasks[pid].pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)UDATA_start, UDATA_SZ);

@@ -518,8 +518,9 @@ ptable_remove(pde_t *pgdir)
   /* Free Page Tables */
   for (i = 0; i < 1024; i++)
   {
-    if (pgdir[i] & PTE_P)
-      page_decref(pa2page(PTE_ADDR(pgdir[i])));
+   // if (pgdir[i] & PTE_P)
+     // page_decref(pa2page(PTE_ADDR(pgdir[i])));
+	page_remove(pgdir, KADDR(pgdir[i]));
   }
 }
 
