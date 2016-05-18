@@ -41,7 +41,7 @@ typedef struct
 //
 typedef struct
 {
-	
+	Task cpu_tasks[NR_TASKS];
 } Runqueue;
 
 

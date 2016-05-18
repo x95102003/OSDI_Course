@@ -321,10 +321,13 @@ void task_init_percpu()
 	setupvm(thiscpu->cpu_task->pgdir, (uint32_t)UDATA_start, UDATA_SZ);
 	setupvm(thiscpu->cpu_task->pgdir, (uint32_t)UBSS_start, UBSS_SZ);
 	setupvm(thiscpu->cpu_task->pgdir, (uint32_t)URODATA_start, URODATA_SZ);
-	if(!thiscpu->cpu_id)
+	if(thiscpu->cpu_id == bootcpu->cpu_id){
 		thiscpu->cpu_task->tf.tf_eip = (uint32_t)user_entry;
-	else
-		thiscpu->cpu_task->tf.tf_eip = idle_entry;
+	}
+	else {
+		thiscpu->cpu_task->tf.tf_eip = (uint32_t)idle_entry;
+		
+	}
 
 	/* Load GDT&LDT */
 	lgdt(&gdt_pd);

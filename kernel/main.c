@@ -12,7 +12,7 @@
 
 extern void init_video(void);
 static void boot_aps(void);
-extern Task *cur_task;
+//extern Task *cur_task;
 
 void kernel_main(void)
 {
@@ -83,6 +83,8 @@ boot_aps(void)
 	memmove(kva, mpentry_start, mpentry_end - mpentry_start);
 	
 	for(c=cpus; c < cpus+ncpu;c++){
+		if( c->cpu_id == bootcpu->cpu_id)
+			continue;
 		mpentry_kstack = percpu_kstacks[c-cpus] + KSTKSIZE;
 		lapic_startap(c->cpu_id, PADDR(kva));
 		while(c->cpu_status != CPU_STARTED)	
@@ -161,9 +163,10 @@ mp_main(void)
 	printk("SMP: CPU %d starting\n", cpunum());
 	
 	// Your code here:
-	
+	extern struct Pseudodesc idt_pd;
 	lapic_init();
 	task_init_percpu();
+	lidt(&idt_pd);
 
 	// TODO: Lab6
 	// Now that we have finished some basic setup, it's time to tell
