@@ -13,7 +13,8 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
-	{ "print_tick", "Display system tick", print_tick }
+	{ "print_tick", "Display system tick", print_tick },
+	{ "chgcolor", "Change shell's color", mon_chgcolor}
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -35,13 +36,36 @@ int mon_kerninfo(int argc, char **argv)
    *       Use PROVIDE inside linker script and calculate the
    *       offset.
    */
+	extern int kernel_load_addr;
+	extern int etext;
+	extern int kernel_data_load_addr;
+	extern int end;
+	cprintf("Kernel code base start=0x%08x size = %d\n",
+	 &kernel_load_addr, (int)&etext - (int)&kernel_load_addr);
+	cprintf("Kernel data base start=0x%08x size = %d\n",
+	 &kernel_data_load_addr, (int)&end - (int)&kernel_data_load_addr);
+	cprintf("Kernel executable memory footprint: %dKB\n", ((int)&end - (int)&kernel_load_addr) / 1000);
 	return 0;
 }
+
 int print_tick(int argc, char **argv)
 {
 	cprintf("Now tick = %d\n", get_tick());
 }
 
+int mon_chgcolor(int argc, char **argv)
+{
+	if(argc == 2)
+	{
+		settextcolor(*argv[1], 0);
+		cprintf("Change color %d!\n", *argv[1]-'0');
+	}
+	else
+	{
+		cprintf("No input text color!\n");
+	}
+	return 0;
+}
 #define WHITESPACE "\t\r\n "
 #define MAXARGS 16
 

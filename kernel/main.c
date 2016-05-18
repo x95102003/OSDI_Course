@@ -36,11 +36,10 @@ void kernel_main(void)
   printk("Readonly data start=0x%08x to = 0x%08x\n", etext, rdata_end);
   printk("Kernel data base start=0x%08x to = 0x%08x\n", data_start, end);
 
-
   /* Enable interrupt */
   __asm __volatile("sti");
 
-  lcr3(PADDR(cur_task->pgdir));
+  lcr3(PADDR(thiscpu->cpu_task->pgdir));
 
   /* Move to user mode */
   asm volatile("movl %0,%%eax\n\t" \
@@ -50,7 +49,7 @@ void kernel_main(void)
   "pushl %2\n\t" \
   "pushl %3\n\t" \
   "iret\n" \
-  :: "m" (cur_task->tf.tf_esp), "i" (GD_UD | 0x03), "i" (GD_UT | 0x03), "m" (cur_task->tf.tf_eip)
+  :: "m" (thiscpu->cpu_task->tf.tf_esp), "i" (GD_UD | 0x03), "i" (GD_UT | 0x03), "m" (thiscpu->cpu_task->tf.tf_eip)
   :"ax");
 }
 
@@ -77,6 +76,18 @@ boot_aps(void)
 	//      -- Wait for the CPU to finish some basic setup in mp_main(
 	// 
 	// Your code here:
+	extern unsigned char mpentry_start[], mpentry_end[];
+	void *kva;
+	struct CpuInfo *c;
+	kva = KADDR(MPENTRY_PADDR);
+	memmove(kva, mpentry_start, mpentry_end - mpentry_start);
+	
+	for(c=cpus; c < cpus+ncpu;c++){
+		mpentry_kstack = percpu_kstacks[c-cpus] + KSTKSIZE;
+		lapic_startap(c->cpu_id, PADDR(kva));
+		while(c->cpu_status != CPU_STARTED)	
+			;
+	}
 }
 
 // Setup code for APs
@@ -151,13 +162,14 @@ mp_main(void)
 	
 	// Your code here:
 	
+	lapic_init();
+	task_init_percpu();
 
 	// TODO: Lab6
 	// Now that we have finished some basic setup, it's time to tell
 	// boot_aps() we're up ( using xchg )
 	// Your code here:
-
-
+	xchg(&thiscpu->cpu_status, CPU_STARTED);
 
 	/* Enable interrupt */
 	__asm __volatile("sti");

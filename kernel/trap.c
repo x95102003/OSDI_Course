@@ -4,7 +4,7 @@
 #include <inc/assert.h>
 #include <inc/mmu.h>
 #include <inc/x86.h>
-
+#include <kernel/cpu.h>
 /* For debugging, so print_trapframe can distinguish between printing
  * a saved trapframe and printing the current trapframe and print some
  * additional information in the latter case.
@@ -151,7 +151,7 @@ trap_dispatch(struct Trapframe *tf)
 		if ((tf->tf_cs & 3) == 3)
 		{
 			// Trapped from user mode.
-			extern Task *cur_task;
+			Task *cur_task = thiscpu->cpu_task;
 
 			// Disable interrupt first
 			// Think: Why we disable interrupt here?
@@ -195,6 +195,11 @@ void page_fault_handler(struct Trapframe *tf)
     while (1);
 }
 
+void syscall_handler(struct Trapframe *tf)
+{
+	printk("Syscall handler \n");
+}
+
 void trap_init()
 {
 	int i;
@@ -215,7 +220,6 @@ void trap_init()
 
   /* Using custom trap handler */
 	extern void PGFLT();
-  register_handler(T_PGFLT, page_fault_handler, PGFLT, 1, 0);
-
-	lidt(&idt_pd);
+	register_handler(T_PGFLT, page_fault_handler, PGFLT, 1, 0);
+	lidt(&idt_pd); 
 }

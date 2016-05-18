@@ -23,7 +23,7 @@ int32_t do_getc()
 int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
 {
 	int32_t retVal = -1;
-	extern Task *cur_task;
+	Task *cur_task = thiscpu->cpu_task;
 
 	switch (syscallno)
 	{
@@ -31,6 +31,7 @@ int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, ui
 		/* TODO: Lab 5
      * You can reference kernel/task.c, kernel/task.h
      */
+		retVal = sys_fork();
 		break;
 
 	case SYS_getc:
@@ -46,6 +47,7 @@ int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, ui
 		/* TODO: Lab 5
      * Get current task's pid
      */
+		retVal = cur_task->task_id;
 		break;
 
 	case SYS_getcid:
@@ -58,6 +60,9 @@ int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, ui
      * Yield this task
      * You can reference kernel/sched.c for yielding the task
      */
+		cur_task->remind_ticks = (int32_t)a1;
+		cur_task->state = TASK_SLEEP;
+		sched_yield();
 		break;
 
 	case SYS_kill:
@@ -65,18 +70,21 @@ int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, ui
      * Kill specific task
      * You can reference kernel/task.c, kernel/task.h
      */
+		sys_kill(cur_task->task_id);
 		break;
 
   case SYS_get_num_free_page:
 		/* TODO: Lab 5
      * You can reference kernel/mem.c
      */
+	retVal = sys_get_num_free_page();
     break;
 
   case SYS_get_num_used_page:
 		/* TODO: Lab 5
      * You can reference kernel/mem.c
      */
+	retVal = sys_get_num_used_page();
     break;
 
   case SYS_get_ticks:
@@ -90,12 +98,14 @@ int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, ui
 		/* TODO: Lab 5
      * You can reference kernel/screen.c
      */
+	sys_settextcolor((unsigned char)a1,(unsigned char)a2);
     break;
 
   case SYS_cls:
 		/* TODO: Lab 5
      * You can reference kernel/screen.c
      */
+	sys_cls();
     break;
 
 	}
@@ -109,7 +119,8 @@ static void syscall_handler(struct Trapframe *tf)
    * Please remember to fill in the return value
    * HINT: You have to know where to put the return value
    */
-
+	tf->tf_regs.reg_eax = do_syscall(tf->tf_regs.reg_eax, tf->tf_regs.reg_ebx, tf->tf_regs.reg_ecx, 
+			tf->tf_regs.reg_edx, tf->tf_regs.reg_esi, tf->tf_regs.reg_edi);
 }
 
 void syscall_init()
@@ -118,6 +129,7 @@ void syscall_init()
    * Please set gate of system call into IDT
    * You can leverage the API register_handler in kernel/trap.c
    */
-
+	extern void SYSCALL();
+	register_handler(T_SYSCALL, syscall_handler, SYSCALL, 0 ,3);
 }
 

@@ -10,7 +10,14 @@ _start = RELOC(entry)
 .text
 entry:
 	movw	$0x1234,0x472			# warm boot
-
+	
+	movl	$bss_start, %eax
+	xorl	%eax, %eax
+	cld
+	movl	$end, %eax
+	subl	$bss_start, %eax
+	movl	%eax, %ecx
+	rep	stosb
 	# We haven't set up virtual memory yet, so we're running from
 	# the physical address the boot loader loaded the kernel at: 1MB
 	# (plus a few bytes).  However, the C code is linked to run at

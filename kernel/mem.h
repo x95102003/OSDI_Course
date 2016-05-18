@@ -46,6 +46,7 @@ void              mem_init                (void);
 int32_t           sys_get_num_free_page   (void);
 int32_t           sys_get_num_used_page   (void);
 
+int32_t			calc_num_free_page(struct PageInfo *pp);
 
 /* -------------- Inline Functions --------------  */
 
