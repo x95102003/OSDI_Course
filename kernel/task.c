@@ -53,6 +53,7 @@ struct Pseudodesc gdt_pd = {
 
 static struct tss_struct tss;
 Task tasks[NR_TASKS];
+uint32_t cpu_disp;
 
 extern char bootstack[];
 
@@ -167,7 +168,7 @@ static void task_free(int pid)
 {
 	int i;
 	lcr3(PADDR(kern_pgdir));
-	Task *ts = &tasks[pid];
+	Task *ts = thiscpu->cpu_rq.cpu_tasks[pid];
 	for(i=USTACKTOP-USR_STACK_SIZE; i<USTACKTOP;i+=PGSIZE){
 		page_remove(ts->pgdir,(void *)i);
 	}
@@ -249,9 +250,11 @@ int sys_fork()
     setupvm(tasks[pid].pgdir, (uint32_t)UDATA_start, UDATA_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)UBSS_start, UBSS_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)URODATA_start, URODATA_SZ);
-	
 	tasks[pid].tf.tf_regs.reg_eax = 0;
-	return tasks[pid].task_id;
+	cpu_disp++;
+	cpus[cpu_disp%ncpu].cpu_rq.cpu_tasks[pid] = &tasks[pid];
+
+	return pid;
 	}
 	return -1;
 }
@@ -311,6 +314,10 @@ void task_init_percpu()
 	/* Setup TSS in GDT */
 	gdt[(GD_TSS0 >> 3) + thiscpu->cpu_id] = SEG16(STS_T32A, (uint32_t)(&thiscpu->cpu_tss), sizeof(struct tss_struct), 0);
 	gdt[(GD_TSS0 >> 3) + thiscpu->cpu_id].sd_s = 0;
+	
+	/* Initialize cpu_runueue */
+	for(i=0 ; i < NR_TASKS;i++)
+		thiscpu->cpu_rq.cpu_tasks[i] = 0;
 
 	/* Setup first task */
 	i = task_create();
@@ -321,13 +328,16 @@ void task_init_percpu()
 	setupvm(thiscpu->cpu_task->pgdir, (uint32_t)UDATA_start, UDATA_SZ);
 	setupvm(thiscpu->cpu_task->pgdir, (uint32_t)UBSS_start, UBSS_SZ);
 	setupvm(thiscpu->cpu_task->pgdir, (uint32_t)URODATA_start, URODATA_SZ);
+	
 	if(thiscpu->cpu_id == bootcpu->cpu_id){
 		thiscpu->cpu_task->tf.tf_eip = (uint32_t)user_entry;
 	}
 	else {
 		thiscpu->cpu_task->tf.tf_eip = (uint32_t)idle_entry;
-		
 	}
+	thiscpu->cpu_rq.cpu_tid = i;
+	thiscpu->cpu_rq.cpu_tasks[i] = thiscpu->cpu_task;
+	printk("CPU:%d task id%d\n", thiscpu->cpu_id, thiscpu->cpu_rq.cpu_tasks[i]->state);
 
 	/* Load GDT&LDT */
 	lgdt(&gdt_pd);

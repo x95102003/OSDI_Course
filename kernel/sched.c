@@ -42,25 +42,34 @@
 //
 void sched_yield(void)
 {
-	extern Task tasks[];
+	//extern Task tasks[];
 	Task *last_task = thiscpu->cpu_task;
-	uint32_t i=thiscpu->cpu_task->task_id;
-	uint32_t p=10;
+	uint32_t index = thiscpu->cpu_task->task_id;
+	uint32_t idle = thiscpu->cpu_rq.cpu_tid;
+	uint32_t i = index;
+	int next = -1;
 	while(1)
 	{
-		i++;
-		i = i%10;
-		if(tasks[i].state == TASK_RUNNABLE)
-		{
-			tasks[i].remind_ticks = TIME_QUANT;
-			tasks[i].state = TASK_RUNNING;
-			thiscpu->cpu_task = &tasks[i];
+		i = (i+1)%NR_TASKS;
+		if(!thiscpu->cpu_rq.cpu_tasks[i])
+			continue;
+		if((thiscpu->cpu_rq.cpu_tasks[i])->state == TASK_RUNNABLE && i != idle){
+			next = i;
+			break;
+		}
+		if(i == index){
+			next = -1;
 			break;
 		}
 
 	}
-	if(last_task->remind_ticks <=0 && last_task->state == TASK_RUNNING)
+	if(next == -1)
+		next = idle;
+	if(last_task->remind_ticks <= 0 && last_task->state == TASK_RUNNING)
 		last_task->state = TASK_RUNNABLE;
+	thiscpu->cpu_task = thiscpu->cpu_rq.cpu_tasks[next];
+	thiscpu->cpu_task->remind_ticks = TIME_QUANT;
+	thiscpu->cpu_task->state = TASK_RUNNING;
 	lcr3(PADDR(thiscpu->cpu_task->pgdir));
 	ctx_switch(thiscpu->cpu_task);
 }
