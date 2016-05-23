@@ -9,12 +9,14 @@
 #include <kernel/mem.h>
 #include <kernel/kclock.h>
 #include <kernel/cpu.h>
+#include <kernel/spinlock.h>
 
 // These variables are set by i386_detect_memory()
 size_t                   npages;			// Amount of physical memory (in pages)
 static size_t            npages_basemem;	// Amount of base memory (in pages)
 static char              *nextfree;	// virtual address of next byte of free memory
 
+struct spinlock pgalloc_lock;
 // These variables are set in mem_init()
 pde_t                    *kern_pgdir;		// Kernel's initial page directory
 struct PageInfo          *pages;		// Physical page state array
@@ -160,6 +162,7 @@ mem_init(void)
 	// memory management will go through the page_* functions. In
 	// particular, we can now map memory using boot_map_region
 	// or page_insert
+	
 	page_init();
 	check_page_free_list(1);
 	check_page_alloc();
@@ -301,6 +304,7 @@ page_init(void)
 	 *
 	 */
     size_t i;
+	spin_initlock(&pgalloc_lock);
 	for (i =0;i < npages; i++) {
 		if(i == 0){
 			continue;
@@ -332,13 +336,17 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
     /* TODO */
+
 	if(!page_free_list)
 		return NULL;
+	spin_lock(&pgalloc_lock);
 	struct PageInfo *result = page_free_list;
 	page_free_list = page_free_list->pp_link;
 	result->pp_link = NULL;
+	spin_unlock(&pgalloc_lock);
 	if(alloc_flags & ALLOC_ZERO)
 		memset(page2kva(result), '\0', PGSIZE);
+
 	return result;
 }
 

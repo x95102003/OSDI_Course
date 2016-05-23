@@ -2,10 +2,11 @@
 #include <inc/x86.h>
 #include <inc/string.h>
 #include <inc/stdio.h>
-
+#include <kernel/spinlock.h>
 /* These define our textpointer, our background and foreground
 *  colors (attributes), and x and y cursor coordinates */
 unsigned short *textmemptr;
+struct spinlock console_lk;
 int attrib = 0x0F;
 int csr_x = 0, csr_y = 0;
 
@@ -143,10 +144,12 @@ void k_puts(unsigned char *text)
 {
     int i;
 
+	spin_lock(&console_lk);
     for (i = 0; i < strlen((char*)text); i++)
     {
         k_putch(text[i]);
     }
+	spin_unlock(&console_lk);
 }
 
 /* Sets the forecolor and backcolor that we will use */
@@ -158,6 +161,7 @@ void sys_settextcolor(unsigned char forecolor, unsigned char backcolor)
 /* Sets our text-mode VGA pointer, then clears the screen for us */
 void init_video(void)
 {
+	spin_initlock(&console_lk);
     textmemptr = (unsigned short *)0xB8000;
     sys_cls();
 }

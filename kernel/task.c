@@ -6,7 +6,7 @@
 #include <kernel/task.h>
 #include <kernel/mem.h>
 #include <kernel/cpu.h>
-
+#include <kernel/spinlock.h>
 // Global descriptor table.
 //
 // Set up global descriptor table (GDT) with separate segments for
@@ -53,7 +53,10 @@ struct Pseudodesc gdt_pd = {
 
 static struct tss_struct tss;
 Task tasks[NR_TASKS];
+
 uint32_t cpu_disp;
+struct spinlock task_lk;
+struct spinlock coun_lk;
 
 extern char bootstack[];
 
@@ -104,6 +107,7 @@ int task_create()
 	size_t i;
 	size_t pi;
 	size_t pid;
+	spin_lock(&task_lk);
 	for(i=0; i<NR_TASKS; i++){
 		if(!tasks[i].state){
 			ts = &tasks[i];
@@ -116,6 +120,9 @@ int task_create()
   /* Setup Page Directory and pages for kernel*/
   if (!(ts->pgdir = setupkvm()))
     panic("Not enough memory for per process page directory!\n");
+
+	ts->state = TASK_RUNNABLE;
+	spin_unlock(&task_lk);
 
   /* Setup User Stack */
 	for(pi=USTACKTOP - USR_STACK_SIZE;pi < USTACKTOP; pi+=PGSIZE)
@@ -132,13 +139,12 @@ int task_create()
 	ts->tf.tf_ss = GD_UD | 0x03;
 	ts->tf.tf_esp = USTACKTOP-PGSIZE;
 
-
 	/* Setup task structure (task_id and parent_id) */
 	if(thiscpu->cpu_task)
 		ts->parent_id = thiscpu->cpu_task->task_id;
 	else
 		ts->parent_id = 0;
-	ts->state = TASK_RUNNABLE;
+
 	ts->task_id = pid;
 	ts->remind_ticks = TIME_QUANT;
 	return ts->task_id;
@@ -235,9 +241,10 @@ int sys_fork()
   int i;
 	if ((uint32_t)thiscpu->cpu_task)
 	{
+		//spin_lock(&task_lk);
 		if((pid=task_create())== -1)
 			return -1;
-		
+		//spin_unlock(&task_lk);
 		tasks[pid].tf = thiscpu->cpu_task->tf;
 		for(i =0 ; i < USR_STACK_SIZE ; i+=PGSIZE)
 		{
@@ -251,9 +258,10 @@ int sys_fork()
     setupvm(tasks[pid].pgdir, (uint32_t)UBSS_start, UBSS_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)URODATA_start, URODATA_SZ);
 	tasks[pid].tf.tf_regs.reg_eax = 0;
+	spin_lock(&coun_lk);
 	cpu_disp++;
 	cpus[cpu_disp%ncpu].cpu_rq.cpu_tasks[pid] = &tasks[pid];
-
+	spin_unlock(&coun_lk);
 	return pid;
 	}
 	return -1;
@@ -272,6 +280,8 @@ void task_init()
   UBSS_SZ = (uint32_t)(UBSS_end - UBSS_start);
   URODATA_SZ = (uint32_t)(URODATA_end - URODATA_start);
 
+  spin_initlock(&task_lk);
+  spin_initlock(&coun_lk);
 	/* Initial task sturcture */
 	for (i = 0; i < NR_TASKS; i++)
 	{
@@ -337,7 +347,6 @@ void task_init_percpu()
 	}
 	thiscpu->cpu_rq.cpu_tid = i;
 	thiscpu->cpu_rq.cpu_tasks[i] = thiscpu->cpu_task;
-	printk("CPU:%d task id%d\n", thiscpu->cpu_id, thiscpu->cpu_rq.cpu_tasks[i]->state);
 
 	/* Load GDT&LDT */
 	lgdt(&gdt_pd);
