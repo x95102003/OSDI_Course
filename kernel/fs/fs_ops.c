@@ -10,17 +10,29 @@ extern struct fs_dev fat_fs;
 
 /*TODO: Lab7, fat level file operator.*/
 
-int fat_mount(struct fs_dev *fs, unsigned long rwflag, const void* data)
+/* Note: 1. Get FATFS object from fs->data
+*        2. Check fs->path parameter then call f_mount.
+*/
+int fat_mount(struct fs_dev *fs, const void* data)
 {
 
 }
+
+/* Note: Just call f_mkfs at root path '/' */
 int fat_mkfs(const char* device_name)
 {
 
 }
+
+/* Note: Convert the POSIX's open flag to elmfat's flag.
+*        Example: if file->flags == O_RDONLY then open_mode = FA_READ
+*                 if file->flags & O_APPEND then f_seek the file to end after f_open
+*        Reference: http://elm-chan.org/fsw/ff/en/open.html 
+*/
 int fat_open(struct fs_fd* file)
 {
 }
+
 int fat_close(struct fs_fd* file)
 {
 

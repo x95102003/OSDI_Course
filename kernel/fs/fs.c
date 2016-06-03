@@ -40,14 +40,17 @@ int fs_init()
     
     /* Mount fat file system at "/" */
     /* Check need mkfs or not */
-    if ((res = fs_mount("elmfat", "/", 0, NULL)) != 0)
+    if ((res = fs_mount("elmfat", "/", NULL)) != 0)
     {
         fat_fs.ops->mkfs("elmfat");
-        fs_mount("elmfat", "/", 0, NULL);
+        res = fs_mount("elmfat", "/", NULL);
+        return res;
     }
+    return -STATUS_EIO;
        
 }
-int fs_mount(const char* device_name, const char* path, unsigned long rwflag, const void* data)
+
+int fs_mount(const char* device_name, const char* path, const void* data)
 {
     return -STATUS_EIO;
 } 
@@ -62,6 +65,7 @@ int file_write(struct fs_fd* fd, const void *buf, size_t len)
 
 }
 
+/* Note: Before call call fat_fs.ops->open() you may copy the path and flags parameters into fd object structure */
 int file_open(struct fs_fd* fd, const char *path, int flags)
 {
 

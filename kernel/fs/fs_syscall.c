@@ -7,6 +7,7 @@
 
 /*TODO: Lab7, file I/O system call interface.*/
 // Below is POSIX like I/O system call 
+
 int sys_open(const char *file, int flags, int mode)
 {
     //We dont care the mode.
@@ -26,6 +27,7 @@ int sys_write(int fd, const void *buf, size_t len)
 /* TODO */
 }
 
+/* Note: Check the whence parameter and calcuate the new offset value before do file_seek() */
 off_t sys_lseek(int fd, off_t offset, int whence)
 {
 /* TODO */
