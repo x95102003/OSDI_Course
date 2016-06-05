@@ -8,7 +8,10 @@
 
 extern struct fs_dev fat_fs;
 
-/*TODO: Lab7, fat level file operator.*/
+/*TODO: Lab7, fat level file operator.
+*       Implement below functions to support basic file system operators by using the elmfat's API(f_xxx).
+*       Reference: http://elm-chan.org/fsw/ff/00index_e.html
+*/
 
 /* Note: 1. Get FATFS object from fs->data
 *        2. Check fs->path parameter then call f_mount.

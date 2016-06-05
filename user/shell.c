@@ -2,6 +2,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/shell.h>
+#include <inc/assert.h>
 
 char hist[SHELL_HIST_MAX][BUF_LEN];
 
@@ -18,6 +19,8 @@ int forktest(int argc, char **argv);
 int filetest(int argc, char **argv);
 int fs_seek_test(int argc, char **argv);
 int fs_speed_test(int argc, char **argv);
+int filetest2(int argc, char **argv);
+int filetest3(int argc, char **argv);
 
 struct Command commands[] = {
   { "help", "Display this list of commands", mon_help },
@@ -28,7 +31,9 @@ struct Command commands[] = {
   
   { "filetest", "Test create file", filetest },
   { "fs_seek_test", "Test seek file", fs_seek_test },
-  { "fs_speed_test", "Test R/W speed", fs_speed_test}
+  { "fs_speed_test", "Test R/W speed", fs_speed_test},
+  { "filetest2", "Open test", filetest2},
+  { "filetest3", "Large block test", filetest3}
 };
 const int NCOMMANDS = (sizeof(commands)/sizeof(commands[0]));
 
@@ -151,6 +156,7 @@ int forktest(int argc, char **argv)
   kill_self();
   return 0;
 }
+
 #define BUFSIZE 30
 int filetest(int argc, char **argv)
 {
@@ -192,6 +198,54 @@ int filetest(int argc, char **argv)
     return 0;
 }
 
+int filetest2(int argc, char **argv)
+{
+    int fd[20], i;
+    
+    for (i = 0; i < 20; i++)
+    {
+        fd[i] =  open("hello.txt", O_WRONLY | O_CREAT | O_TRUNC, 0);
+        if (fd[i] < 0)
+            cprintf("Open error, %d\n", fd[i]);
+        else
+            cprintf("Open successed, %d\n", i);
+    }
+    return 0;
+}
+
+#define LARGE_SIZE 4000
+char larg_buf[LARGE_SIZE] = {0};
+int filetest3(int argc, char **argv)
+{
+    int fd, i, ret;
+    
+    fd =  open("large", O_RDWR | O_CREAT | O_TRUNC, 0);
+    if (fd > 0)
+    {
+        for (i = 0; i < LARGE_SIZE; i++)
+        {
+            larg_buf[i] = i;
+        }
+        ret = write(fd, larg_buf, LARGE_SIZE);
+        assert(ret == LARGE_SIZE);
+    }
+    ret = lseek(fd, 0, SEEK_SET); //seek to file begin
+    assert(ret == 0);
+    for (i = 0; i < LARGE_SIZE; i++)
+    {
+        larg_buf[i] = 0;
+    }
+    ret = read(fd, larg_buf, LARGE_SIZE);
+    assert(ret == LARGE_SIZE);
+    
+    for (i = 0; i < LARGE_SIZE; i++)
+    {
+        assert(larg_buf[i] == i);
+    }
+    cprintf("Large file test successed!\n");
+    return 0;
+    
+}
 int fs_seek_test(int argc, char **argv)
 {
     int i;
