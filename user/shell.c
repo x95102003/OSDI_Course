@@ -213,34 +213,47 @@ int filetest2(int argc, char **argv)
     return 0;
 }
 
+#define uassert(x)		\
+	do { if (!(x)) {cprintf("assertion failed: %s", #x); return 0;}} while (0)
 #define LARGE_SIZE 4000
-char larg_buf[LARGE_SIZE] = {0};
 int filetest3(int argc, char **argv)
 {
     int fd, i, ret;
+    char larg_buf[LARGE_SIZE] = {0};
     
-    fd =  open("large", O_RDWR | O_CREAT | O_TRUNC, 0);
-    if (fd > 0)
+    fd =  open("large.txt", O_RDWR | O_CREAT | O_TRUNC, 0);
+    if (fd >= 0)
     {
         for (i = 0; i < LARGE_SIZE; i++)
         {
-            larg_buf[i] = i;
+            larg_buf[i] = i & 0xFF;
         }
         ret = write(fd, larg_buf, LARGE_SIZE);
-        assert(ret == LARGE_SIZE);
+        uassert(ret == LARGE_SIZE);
     }
+    else
+    {
+        cprintf("Open error, %d\n", fd);
+        return -1;
+    }
+        
     ret = lseek(fd, 0, SEEK_SET); //seek to file begin
-    assert(ret == 0);
+    uassert(ret == 0);
     for (i = 0; i < LARGE_SIZE; i++)
     {
         larg_buf[i] = 0;
     }
     ret = read(fd, larg_buf, LARGE_SIZE);
-    assert(ret == LARGE_SIZE);
+    uassert(ret == LARGE_SIZE);
     
     for (i = 0; i < LARGE_SIZE; i++)
     {
-        assert(larg_buf[i] == i);
+        //uassert(larg_buf[i] == i&0xFF);
+        if ((larg_buf[i]&0xFF) != (i& 0xFF))
+        {
+            cprintf("Failed at %d, read %d want %d\n", i, larg_buf[i]&0xFF, i&0xFF);
+            return -1;
+        }
     }
     cprintf("Large file test successed!\n");
     return 0;
