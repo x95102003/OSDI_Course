@@ -51,7 +51,7 @@ struct Pseudodesc gdt_pd = {
 
 
 
-static struct tss_struct tss;
+//static struct Taskstate tss;
 Task tasks[NR_TASKS];
 
 uint32_t cpu_disp;
@@ -107,6 +107,7 @@ int task_create()
 	size_t i;
 	size_t pi;
 	size_t pid;
+	struct PageInfo *p;
 	spin_lock(&task_lk);
 	for(i=0; i<NR_TASKS; i++){
 		if(!tasks[i].state){
@@ -139,6 +140,14 @@ int task_create()
 	ts->tf.tf_ss = GD_UD | 0x03;
 	ts->tf.tf_esp = USTACKTOP-PGSIZE;
 
+  /* Setup User Stack */
+  for (i = 0; i < USR_STACK_SIZE; i += PGSIZE)
+  {
+    p = page_alloc(ALLOC_ZERO);
+    if (!p || page_insert(ts->pgdir, p, (void*)(USTACKTOP-USR_STACK_SIZE+i), PTE_W|PTE_U))
+      panic("Not enough memory for user stack!\n");
+  }
+	
 	/* Setup task structure (task_id and parent_id) */
 	if(thiscpu->cpu_task)
 		ts->parent_id = thiscpu->cpu_task->task_id;
@@ -190,6 +199,8 @@ static void task_free(int pid)
 //
 void sys_kill(int pid)
 {
+	/* Lab4: Died task recycele, just set task state as TASK_STOP and yield */
+  
 	if (pid > 0 && pid < NR_TASKS)
 	{
 	/* TODO: Lab 5
@@ -234,17 +245,16 @@ void sys_kill(int pid)
 // Modify it so that the task will disptach to different cpu runqueue
 // (please try to load balance, don't put all task into one cpu)
 //
+//
+
 int sys_fork()
 {
-  /* pid for newly created process */
   int pid;
   int i;
 	if ((uint32_t)thiscpu->cpu_task)
 	{
-		//spin_lock(&task_lk);
 		if((pid=task_create())== -1)
 			return -1;
-		//spin_unlock(&task_lk);
 		tasks[pid].tf = thiscpu->cpu_task->tf;
 		for(i =0 ; i < USR_STACK_SIZE ; i+=PGSIZE)
 		{
@@ -252,7 +262,7 @@ int sys_fork()
 			memcpy(KADDR(PTE_ADDR(*pte)), USTACKTOP-USR_STACK_SIZE+i, PGSIZE);
 		}
 
-		/* Step 4: All user program use the same code for now */
+		 /*Step 4: All user program use the same code for now */
     setupvm(tasks[pid].pgdir, (uint32_t)UTEXT_start, UTEXT_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)UDATA_start, UDATA_SZ);
     setupvm(tasks[pid].pgdir, (uint32_t)UBSS_start, UBSS_SZ);
@@ -267,10 +277,6 @@ int sys_fork()
 	return -1;
 }
 
-/* TODO: Lab5
- * We've done the initialization for you,
- * please make sure you understand the code.
- */
 void task_init()
 {
   extern int user_entry();
@@ -279,6 +285,10 @@ void task_init()
   UDATA_SZ = (uint32_t)(UDATA_end - UDATA_start);
   UBSS_SZ = (uint32_t)(UBSS_end - UBSS_start);
   URODATA_SZ = (uint32_t)(URODATA_end - URODATA_start);
+  /*printk("UText start:[%p], UText end:[%p]\n", UTEXT_start, UTEXT_end);*/
+  /*printk("UData start:[%p], UData end:[%p]\n", UDATA_start, UDATA_end);*/
+  /*printk("UBss start:[%p], UBss end:[%p]\n", UBSS_start, UBSS_end);*/
+  /*printk("URODATA start:[%p], URODATA end:[%p]\n", URODATA_start, URODATA_end);*/
 
   spin_initlock(&task_lk);
   spin_initlock(&coun_lk);

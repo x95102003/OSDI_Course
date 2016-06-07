@@ -6,6 +6,9 @@
 #include <kernel/trap.h>
 #include <inc/stdio.h>
 
+extern void sys_settextcolor(unsigned char forecolor, unsigned char backcolor); // kernel/screen.c
+extern void sys_cls(); // kernel/screen.c
+
 void do_puts(char *str, uint32_t len)
 {
 	uint32_t i;
@@ -23,90 +26,113 @@ int32_t do_getc()
 int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
 {
 	int32_t retVal = -1;
+	if (syscallno < NSYSCALLS){
+		switch (syscallno)
+		{
+		case SYS_fork:
+			/* TODO: Lab 5
+		 * You can reference kernel/task.c, kernel/task.h
+		 */
+			retVal = sys_fork();
+			break;
 
-	switch (syscallno)
-	{
-	case SYS_fork:
-		/* TODO: Lab 5
-     * You can reference kernel/task.c, kernel/task.h
-     */
-		retVal = sys_fork();
+		case SYS_getc:
+			retVal = do_getc();
+			break;
+
+		case SYS_puts:
+			do_puts((char*)a1, a2);
+			retVal = 0;
+			break;
+
+		case SYS_getpid:
+			/* TODO: Lab 5
+		 * Get current task's pid
+		 */
+			retVal = thiscpu->cpu_task->task_id;
+			break;
+
+		case SYS_getcid:
+			/* Lab6: get current cpu's cid */
+			retVal = thiscpu->cpu_id;
+			break;
+
+		case SYS_sleep:
+			/* TODO: Lab 5
+		 * Yield this task
+		 * You can reference kernel/sched.c for yielding the task
+		 */
+			thiscpu->cpu_task->remind_ticks = (int32_t)a1;
+			thiscpu->cpu_task->state = TASK_SLEEP;
+			sched_yield();
+			break;
+
+		case SYS_kill:
+			/* TODO: Lab 5
+		 * Kill specific task
+		 * You can reference kernel/task.c, kernel/task.h
+		 */
+			sys_kill(thiscpu->cpu_task->task_id);
+			retVal = 0;
+			break;
+
+	  case SYS_get_num_free_page:
+			/* TODO: Lab 5
+		 * You can reference kernel/mem.c
+		 */
+		retVal = sys_get_num_free_page();
 		break;
 
-	case SYS_getc:
-		retVal = do_getc();
+	  case SYS_get_num_used_page:
+			/* TODO: Lab 5
+		 * You can reference kernel/mem.c
+		 */
+		retVal = sys_get_num_used_page();
 		break;
 
-	case SYS_puts:
-		do_puts((char*)a1, a2);
+	  case SYS_get_ticks:
+			/* TODO: Lab 5
+		 * You can reference kernel/timer.c
+		 */
+		retVal = sys_get_ticks();
+		break;
+
+	  case SYS_settextcolor:
+			/* TODO: Lab 5
+		 * You can reference kernel/screen.c
+		 */
+		sys_settextcolor((unsigned char)a1,(unsigned char)a2);
 		retVal = 0;
 		break;
 
-	case SYS_getpid:
-		/* TODO: Lab 5
-     * Get current task's pid
-     */
-		retVal = thiscpu->cpu_task->task_id;
+	  case SYS_cls:
+			/* TODO: Lab 5
+		 * You can reference kernel/screen.c
+		 */
+		sys_cls();
+		retVal = 0;
 		break;
-
-	case SYS_getcid:
-		/* Lab6: get current cpu's cid */
-		retVal = thiscpu->cpu_id;
+		
+		/* TODO: Lab7 file I/O system call */    
+	  case SYS_open:
+		retVal = sys_open((const char*)a1, (int)a2, (int)a3);
 		break;
-
-	case SYS_sleep:
-		/* TODO: Lab 5
-     * Yield this task
-     * You can reference kernel/sched.c for yielding the task
-     */
-		thiscpu->cpu_task->remind_ticks = (int32_t)a1;
-		thiscpu->cpu_task->state = TASK_SLEEP;
-		sched_yield();
+	  case SYS_read:
+		retVal = sys_read((int)a1, (void *)a2, (size_t)a3);
 		break;
-
-	case SYS_kill:
-		/* TODO: Lab 5
-     * Kill specific task
-     * You can reference kernel/task.c, kernel/task.h
-     */
-		sys_kill(thiscpu->cpu_task->task_id);
+	  case SYS_write:
+		retVal = sys_write((int)a1, (const void *)a2, (int)a3);
 		break;
-
-  case SYS_get_num_free_page:
-		/* TODO: Lab 5
-     * You can reference kernel/mem.c
-     */
-	retVal = sys_get_num_free_page();
-    break;
-
-  case SYS_get_num_used_page:
-		/* TODO: Lab 5
-     * You can reference kernel/mem.c
-     */
-	retVal = sys_get_num_used_page();
-    break;
-
-  case SYS_get_ticks:
-		/* TODO: Lab 5
-     * You can reference kernel/timer.c
-     */
-    retVal = sys_get_ticks();
-    break;
-
-  case SYS_settextcolor:
-		/* TODO: Lab 5
-     * You can reference kernel/screen.c
-     */
-	sys_settextcolor((unsigned char)a1,(unsigned char)a2);
-    break;
-
-  case SYS_cls:
-		/* TODO: Lab 5
-     * You can reference kernel/screen.c
-     */
-	sys_cls();
-    break;
-
+	  case SYS_close:
+		retVal = sys_close((int)a1);
+		break;
+	  case SYS_lseek:
+		retVal = sys_lseek((int)a1, (off_t)a2, (int)a3);
+		break;
+	  case SYS_unlink:
+		retVal = sys_unlink((int)a1);
+		break;
+		}
 	}
 	return retVal;
 }
@@ -130,5 +156,9 @@ void syscall_init()
    */
 	extern void SYSCALL();
 	register_handler(T_SYSCALL, syscall_handler, SYSCALL, 0 ,3);
+	/* Initial syscall trap after trap_init()*/
+	/* Register trap handler */
+	extern void SYS_ISR();
+	register_handler( T_SYSCALL, &syscall_handler, &SYS_ISR, 1, 3);
 }
 

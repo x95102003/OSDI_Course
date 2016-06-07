@@ -9,6 +9,10 @@
 #include <kernel/syscall.h>
 #include <kernel/timer.h>
 #include <kernel/cpu.h>
+#include <kernel/drv/disk.h>
+#include <fs.h>
+
+extern void fs_test();
 
 extern void init_video(void);
 static void boot_aps(void);
@@ -19,7 +23,7 @@ void kernel_main(void)
 	extern char stext[];
 	extern char etext[], end[], data_start[],rdata_end[];
 	extern void task_job();
-
+	
 	init_video();
   	mem_init();
 	mp_init();
@@ -35,6 +39,12 @@ void kernel_main(void)
   printk("Kernel code base start=0x%08x to = 0x%08x\n", stext, etext);
   printk("Readonly data start=0x%08x to = 0x%08x\n", etext, rdata_end);
   printk("Kernel data base start=0x%08x to = 0x%08x\n", data_start, end);
+	disk_init();
+	disk_test();
+	/*TODO Lab7: uncommend it when you finish 7.2 part */
+	fs_test();
+	fs_init();
+
 
   /* Enable interrupt */
   __asm __volatile("sti");

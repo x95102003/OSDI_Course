@@ -3,6 +3,15 @@
 
 #define SYSCALL_NOARG(name, ret_t) \
    ret_t name(void) { return syscall((SYS_##name), 0, 0, 0, 0, 0); }
+   
+#define SYSCALL_1ARG(name, ret_t, typ_arg1) \
+ret_t name(typ_arg1 a1) { return syscall((SYS_##name), (uint32_t)a1, 0, 0, 0, 0); }
+
+#define SYSCALL_2ARG(name, ret_t, typ_arg1,typ_arg2) \
+ret_t name(typ_arg1 a1, typ_arg2 a2) { return syscall((SYS_##name), (uint32_t)a1, (uint32_t)a2, 0, 0, 0); }
+
+#define SYSCALL_3ARG(name, ret_t, typ_arg1, typ_arg2, typ_arg3) \
+ret_t name(typ_arg1 a1, typ_arg2 a2, typ_arg3 a3) { return syscall((SYS_##name), (uint32_t)a1, (uint32_t)a2, (uint32_t)a3, 0, 0); }
 
 
 static inline int32_t
@@ -33,12 +42,29 @@ syscall(int num, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5
 		  "D" (a5)
 		: "cc", "memory");
 
+	//if(check && ret > 0)
+	//	panic("syscall %d returned %d (> 0)", num, ret);
+
 	return ret;
 }
 
+//***********Lab7 syscalls***********//
+SYSCALL_1ARG(close, int, int)
+SYSCALL_3ARG(open, int, const char *, int, int)
+SYSCALL_3ARG(read, int, int, void *, size_t)
+SYSCALL_3ARG(write, int, int, const void *, size_t)
+SYSCALL_3ARG(lseek, off_t, int, off_t, int)
+SYSCALL_1ARG(unlink, int, const char *)
 
+/////////////////////////////
 SYSCALL_NOARG(getc, int)
 SYSCALL_NOARG(getcid, int32_t)
+SYSCALL_NOARG(get_num_free_page, int32_t)
+SYSCALL_NOARG(get_num_used_page, int32_t)
+SYSCALL_NOARG(get_ticks, unsigned long)
+SYSCALL_NOARG(fork, int32_t)
+SYSCALL_NOARG(getpid, int32_t)
+SYSCALL_NOARG(cls, int32_t)
 
 void
 puts(const char *s, size_t len)
@@ -55,12 +81,6 @@ puts(const char *s, size_t len)
  *
  * HINT: You can use SYSCALL_NOARG to save your time.
  */
-SYSCALL_NOARG(getpid, int32_t);
-SYSCALL_NOARG(get_num_free_page, int32_t);
-SYSCALL_NOARG(get_num_used_page, int32_t);
-SYSCALL_NOARG(fork, int32_t);
-SYSCALL_NOARG(cls, int32_t);
-SYSCALL_NOARG(get_ticks, unsigned long);
 
 
 void sleep(uint32_t ticks) {
@@ -71,6 +91,7 @@ void settextcolor(unsigned char forecolor, unsigned char backcolor){
 	syscall(SYS_settextcolor, (uint32_t)forecolor, (uint32_t)backcolor, 0, 0, 0);
 }
 
-void kill_self(){
+void kill_self()
+{
 	syscall(SYS_kill, 0, 0, 0, 0, 0);
 }

@@ -31,38 +31,45 @@ void timer_handler(struct Trapframe *tf)
 
   jiffies++;
 	lapic_eoi();
-  extern Task tasks[];
+  //extern Task tasks[];
 
   Task *cur_task = thiscpu->cpu_task;
 
   if (cur_task != NULL)
-  {
-  /* TODO: Lab 5
-   * 1. Maintain the status of slept tasks
-   * 
-   * 2. Change the state of the task if needed
-   *
-   * 3. Maintain the time quantum of the current task
-   *
-   * 4. sched_yield() if the time is up for current task
-   *
-   */
-	for(i=0;i<NR_TASKS;i++)
-	{
-		if(!thiscpu->cpu_rq.cpu_tasks[i])
-			continue;
-		if((thiscpu->cpu_rq.cpu_tasks[i])->state == TASK_SLEEP){
-			if(--(thiscpu->cpu_rq.cpu_tasks[i])->remind_ticks <= 0){
-				(thiscpu->cpu_rq.cpu_tasks[i])->state = TASK_RUNNABLE;
+	  {
+	  /* TODO: Lab 5
+	   * 1. Maintain the status of slept tasks
+	   * 
+	   * 2. Change the state of the task if needed
+	   *
+	   * 3. Maintain the time quantum of the current task
+	   *
+	   * 4. sched_yield() if the time is up for current task
+	   *
+	   */
+		for(i=0;i<NR_TASKS;i++)
+		{
+			if(!thiscpu->cpu_rq.cpu_tasks[i])
+				continue;
+			if((thiscpu->cpu_rq.cpu_tasks[i])->state == TASK_SLEEP){
+				if(--(thiscpu->cpu_rq.cpu_tasks[i])->remind_ticks <= 0){
+					(thiscpu->cpu_rq.cpu_tasks[i])->state = TASK_RUNNABLE;
+				}
 			}
-		}
 
+		}
+		if(--cur_task->remind_ticks <= 0){
+			cur_task->state = TASK_RUNNABLE;
+			sched_yield();
+		}
 	}
-	if(--cur_task->remind_ticks <= 0){
-		cur_task->state = TASK_RUNNABLE;
-		sched_yield();
-	}
-  }
+		/* Lab4: Check cur_task->remind_ticks, if remind_ticks <= 0 then yield the task*/
+		cur_task->remind_ticks--;
+		if (cur_task->remind_ticks <= 0)
+		{
+		  cur_task->state = TASK_RUNNABLE;
+		  sched_yield();
+		}
 }
 
 unsigned long sys_get_ticks()
