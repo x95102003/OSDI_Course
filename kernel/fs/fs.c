@@ -11,9 +11,13 @@ FIL file_objs[FS_FD_MAX];
 /* Static file system object */
 FATFS fat;
 
+/* It file object table */
 struct fs_fd fd_table[FS_FD_MAX];
 
+/* File system operator, define in fs_ops.c */
 extern struct fs_ops elmfat_ops; //We only one file system...
+
+/* File system object, it record the operator and file system object(FATFS) */
 struct fs_dev fat_fs = {
     .dev_id = 1, //In this lab we only use second IDE disk
     .path = {0}, // Not yet mount to any path
@@ -40,18 +44,30 @@ int fs_init()
     
     /* Mount fat file system at "/" */
     /* Check need mkfs or not */
-    if ((res = fs_mount("elmfat", "/", 0, NULL)) != 0)
+    if ((res = fs_mount("elmfat", "/", NULL)) != 0)
     {
         fat_fs.ops->mkfs("elmfat");
-		fs_mount("elmfat", "/", 0, NULL);
+        res = fs_mount("elmfat", "/", NULL);
+        return res;
     }
+    return -STATUS_EIO;
        
 }
-int fs_mount(const char* device_name, const char* path, unsigned long rwflag, const void* data)
+
+/** Mount a file system by path 
+*  Note: You need compare the device_name with fat_fs.ops->dev_name and find the file system operator
+*        then call ops->mount().
+*
+*  @param data: If you have mutilple file system it can be use for pass the file system object pointer save in fat_fs->data. 
+*/
+int fs_mount(const char* device_name, const char* path, const void* data)
 {
 	*fat_fs.ops->dev_name = *device_name;
-	strcpy(fat_fs.path, path);
-	return fat_mount(&fat_fs, rwflag, data); 
+	if(path)
+		strcpy(fat_fs.path, path);
+	else
+		return -1;
+	return fat_mount(&fat_fs , data); 
 } 
 
 int file_read(struct fs_fd* fd, void *buf, size_t len)
@@ -64,6 +80,7 @@ int file_write(struct fs_fd* fd, const void *buf, size_t len)
 	return fat_write(fd, buf, len);
 }
 
+/* Note: Before call call fat_fs.ops->open() you may copy the path and flags parameters into fd object structure */
 int file_open(struct fs_fd* fd, const char *path, int flags)
 {
 

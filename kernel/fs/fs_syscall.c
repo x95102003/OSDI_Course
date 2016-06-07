@@ -6,6 +6,14 @@
 #include <fs.h>
 
 /*TODO: Lab7, file I/O system call interface.*/
+/*NOte: Here you need handle the file system call from user.
+*       1. When user open a new file, you can use the fd_new() to alloc a file object(struct fs_fd)
+*       2. When user R/W the file, use the fd_get() to get file object.
+*       3. After get file object call file_* functions into VFS level
+*       4. Update the file objet's position or size when user R/W or seek the file.(You can find the useful marco in ff.h)
+*       5. Handle the error code, for example, if user call open() but no fd slot can be use, sys_open should return -STATUS_ENOSPC.
+*/
+
 // Below is POSIX like I/O system call 
 int sys_open(const char *file, int flags, int mode)
 {
@@ -50,6 +58,7 @@ int sys_write(int fd, const void *buf, size_t len)
 	return 	file_write(vfs_fd, buf, len);
 }
 
+/* Note: Check the whence parameter and calcuate the new offset value before do file_seek() */
 off_t sys_lseek(int fd, off_t offset, int whence)
 {
 /* TODO */
