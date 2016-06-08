@@ -2,7 +2,7 @@
 #define K_FS_H
 #include <inc/types.h>
 
-#define FS_FD_MAX 10
+#define FS_FD_MAX 10 
 
 /* Mounted file system */
 struct fs_dev
@@ -51,8 +51,10 @@ struct fs_ops
     int (*write)	(struct fs_fd* fd, const void* buf, size_t count);
     //int (*flush)    (struct fs_fd* fd);
     int (*lseek)	(struct fs_fd* fd, off_t offset);
-    
-    //int (*getdents)	(struct fs_fd* fd, struct dirent* dirp, uint32_t count);
+    int (*opendir)  (struct fs_fd* fd, const char *path); 
+    int (*closedir) (struct fs_fd* fd);
+	int (*readdir)  (struct fs_fd* fd, struct dirent *drip); 
+    int (*getdents)	(struct fs_fd* fd, struct dirent* dirp, uint32_t count);
     int (*unlink)	(struct fs_fd* fs, const char* pathname);
 
 };

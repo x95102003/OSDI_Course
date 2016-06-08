@@ -24,7 +24,9 @@ enum {
     SYS_write,
     SYS_lseek,
     SYS_unlink,
-
+	SYS_opendir,
+	SYS_getdents,
+	SYS_closedir,
 	NSYSCALLS
 };
 
@@ -57,5 +59,8 @@ int sys_close(int d);
 int sys_read(int fd, void *buf, size_t len);
 int sys_write(int fd, const void *buf, size_t len);
 off_t sys_lseek(int fd, off_t offset, int whence);
+int sys_opendir(const char*);
+int sys_getdents(int fd, struct dirent *dirp, uint32_t count);
+int sys_closedir(int fd);
 int sys_unlink(const char *pathname);
 #endif

@@ -60,9 +60,11 @@ DRESULT disk_read (BYTE pdrv, BYTE* buff, DWORD sector, UINT count)
     int i = count;
     BYTE *ptr = buff;
     UINT cur_sector = sector;
-    printk("disk_read %d sector %d count %d\n", pdrv, sector, count);
+    //printk("disk_read %d sector %d count %d\n", pdrv, sector, count);
 	err = ide_read_sectors(DISK_ID, i, cur_sector, (unsigned int)ptr);
-	return err;
+	if(err == 0)
+		return RES_OK;
+	return -err;
     /* TODO */
 }
 
@@ -82,9 +84,11 @@ DRESULT disk_write (BYTE pdrv, const BYTE* buff, DWORD sector, UINT count)
     int i = count;
     BYTE *ptr = buff;
     UINT cur_sector = sector;
-    printk("disk_write %d sector %d count %d\n", pdrv, sector, count);
+    //printk("disk_write %d sector %d count %d\n", pdrv, sector, count);
 	err = ide_write_sectors(DISK_ID, i, cur_sector, (unsigned int)ptr);	
-	return err;
+	if(err == 0)
+		return RES_OK;
+	return -err;
     /* TODO */    
 
 }

@@ -11,6 +11,7 @@ int hist_tail;
 int hist_curr;
 
 /*  Prototypes  */
+int listfile(int argc, char **argv);
 int mon_help(int argc, char **argv);
 int mem_stat(int argc, char **argv);
 int print_tick(int argc, char **argv);
@@ -38,10 +39,31 @@ struct Command commands[] = {
   { "filetest2", "Open test", filetest2},
   { "filetest3", "Large block test", filetest3},
   { "filetest4", "Error test", filetest4},
-  { "filetest5", "unlink test", filetest5}
+  { "filetest5", "unlink test", filetest5},
+  { "ls", "List the file in directory", listfile}
 };
 const int NCOMMANDS = (sizeof(commands)/sizeof(commands[0]));
-
+int listfile(int argc, char **argv)
+{
+	int fd =-1;
+	struct dirent dirp;
+	memset(&dirp, 0, sizeof(struct dirent));
+	fd = opendir(&argv[1]);
+	cprintf("fd %d\n", fd);
+	if(fd < 0)
+	{
+		cprintf("opendir err %d\n", fd);
+	}
+	getdents(fd,  &dirp, sizeof(struct dirent));
+	while(dirp.d_namlen){
+		cprintf("type:%d\t%s\t%d\n", dirp.d_type, dirp.d_name, dirp.d_reclen);
+		getdents(fd,  &dirp, sizeof(struct dirent));
+	}
+	if(!(strcmp(dirp.d_name, "")))
+	cprintf("type:%d\t%s\t%d\n", dirp.d_type, dirp.d_name, dirp.d_reclen);
+	closedir(fd);
+	return 0;	
+}
 int mem_stat(int argc, char **argv)
 {
   cprintf("%-10s MEM_STAT %10s\n", "--------", "--------");
@@ -298,9 +320,11 @@ int filetest4(int argc, char **argv)
     }
     
     fd = open("test4", O_WRONLY, 0);
+
     uassert(fd == -STATUS_ENOENT);
     
     fd = open("test4", O_WRONLY | O_CREAT | O_TRUNC, 0);
+
     uassert(fd >= STATUS_OK);
     
     ret = close(100);
@@ -350,6 +374,7 @@ int filetest5(int argc, char **argv)
     }
     
     ret = unlink("test5");
+	cprintf("unlink test 5:%d\n", ret);
     uassert(ret == -STATUS_ENOENT);
     
     fd = open("test5", O_WRONLY | O_CREAT, 0);
@@ -362,6 +387,7 @@ int filetest5(int argc, char **argv)
     uassert(ret == STATUS_OK);
     
     fd = open("test5", O_RDWR, 0);
+	cprintf("open test 5:%d\n", fd);
     uassert(fd == -STATUS_ENOENT); //file should be removed.
     
     fd = open("hello.txt", O_RDWR | O_APPEND, 0);
@@ -395,6 +421,7 @@ int fs_seek_test(int argc, char **argv)
     }
     if ((fd = open("test2.txt", O_WRONLY | O_CREAT | O_TRUNC, 0)) >= 0)
     {
+		cprintf("first open test2 :%d\n", fd);
         ret = write(fd, buf, 10); // write test pattern
         if (ret == 10)
            cprintf("Write test pattern successed!\n"); 
@@ -403,6 +430,7 @@ int fs_seek_test(int argc, char **argv)
     
     if ((fd = open("test2.txt", O_RDWR, 0)) >= 0)
     {
+		cprintf("Second open test2 :%d\n", fd);
         offset = lseek(fd, 10, SEEK_END); //seek to file end + 10 bytes
         cprintf("File offset =%d\n");
         ret = write(fd, &(buf[10]), 10); 

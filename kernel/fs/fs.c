@@ -65,8 +65,6 @@ int fs_mount(const char* device_name, const char* path, const void* data)
 	*fat_fs.ops->dev_name = *device_name;
 	if(path)
 		strcpy(fat_fs.path, path);
-	else
-		return -1;
 	return fat_mount(&fat_fs , data); 
 } 
 
@@ -93,8 +91,11 @@ int file_open(struct fs_fd* fd, const char *path, int flags)
 
 int file_close(struct fs_fd* fd)
 {
-	fd_put(fd);
-	return fat_close(fd);
+
+	if(!fat_close(fd)){
+		return 0;
+	}
+	return -1;
 	
 }
 int file_lseek(struct fs_fd* fd, off_t offset)
@@ -106,13 +107,32 @@ int file_unlink(const char *path)
 	int i;
 	struct fs_fd *fd = NULL;
 	for (i=0;i<FS_FD_MAX;i++){
-		if (fd_table[i].ref_count>0 && !strcmp(fd_table[i].path, path))
+		if (!(strcmp(fd_table[i].path, path))){
 			fd = fd_get(i);
+			break;
+		}
 	}
-	return fat_unlink(fd, path);
+	if(fd)
+		return fat_unlink(fd, path);
+	else
+		return -STATUS_ENOENT;
 }
-
-
+int file_opendir(struct fs_fd* fd, const char*path)
+{
+	return fat_opendir(fd, path);
+}
+int file_readdir(struct fs_fd* fd, struct dirent *dirp)
+{
+	return fat_readdir();
+}
+int file_getdents(struct fs_fd* fd, struct dirent *dirp, uint32_t count)
+{
+	return fat_getdents(fd, dirp, count);	
+}
+int file_closedir(struct fs_fd* fd)
+{
+	return fat_closedir(fd);
+}
 /**
  * @ingroup Fd
  * This function will allocate a file descriptor.
@@ -178,8 +198,8 @@ void fd_put(struct fs_fd* fd)
 	/* clear this fd entry */
 	if ( fd->ref_count == 0 )
 	{
-		//memset(fd, 0, sizeof(struct fs_fd));
 		memset(fd->data, 0, sizeof(FIL));
+		//memset(fd, 0, sizeof(struct fs_fd));
 	}
 };
 

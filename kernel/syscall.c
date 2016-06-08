@@ -129,6 +129,15 @@ int32_t do_syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, ui
 	  case SYS_lseek:
 		retVal = sys_lseek((int)a1, (off_t)a2, (int)a3);
 		break;
+	  case SYS_opendir:
+		retVal = sys_opendir((const char*)a1);
+		break;
+	  case SYS_getdents:
+		retVal = sys_getdents((int)a1, (struct dirent*)a2, (uint32_t)a3);
+		break;
+	  case SYS_closedir:
+		retVal = sys_closedir((int)a1);
+		break;
 	  case SYS_unlink:
 		retVal = sys_unlink((int)a1);
 		break;

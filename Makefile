@@ -42,3 +42,4 @@ disk:
 
 debug:
 	qemu-system-x86_64 -hda kernel.img -hdb lab7.img -monitor stdio -s -S
+	
